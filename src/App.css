@@ -67,8 +67,8 @@
 .left-side-panel {
     position:fixed;
     left: 0;
-    max-width: 400px;
-    width: 80vw;
+    max-width: 300px;
+    width: 40vw;
     height: 60vh;
     top: 50%;
     transform: translateX(-100%) translateY(-50%);
@@ -88,6 +88,46 @@
 .dark-mode .left-side-panel {
     background: rgba(30, 30, 30, 0.9);
     color: #fff;
+}
+
+.navigation-controls {
+    position: fixed;
+    bottom: 50%;
+    left: 50%;
+    transform: translateX(-50%);
+    display: flex;
+    gap: 600px;
+    z-index: 1000;
+}
+
+.navigation-controls.true {
+    transform: translateX(calc(-50% + 200px));
+}
+
+.navigation-controls .control-button {
+    width: 60px !important;
+    height: 60px !important;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 24px;
+    user-select: none;
+    -webkit-user-select: none; /* Safari */
+    -moz-user-select: none; /* Firefox */
+    -ms-user-select: none; /* IE10+/Edge */;
+    cursor: pointer;
+    padding: 0;
+    line-height: 1;
+    aspect-ratio: 1;
+}
+
+.navigation-controls .control-button:hover {
+    transform: scale(1.1);
+    background: rgba(0, 0, 0, 0.3);
+}
+
+.dark-mode .navigation-controls .control-button:hover {
+    background: rgba(255, 255, 255, 0.2);
 }
 
 @media (max-width: 768px) {

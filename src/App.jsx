@@ -1,19 +1,65 @@
 import * as THREE from 'three';
 import { useEffect, useRef, useState } from 'react';
 import './App.css';
-import { render } from 'sass';
 
-function App() {
+const App = () => {
   const [menuOpen, setMenuOpen] = useState(false);
   const [isDarkMode, setIsDarkMode] = useState(false);
-
+  const [currentPositionIndex, setCurrentPositionIndex] = useState(0);
   const sceneRef = useRef(null);
   const cameraRef = useRef(null);
   const cameraPositionRef = useRef({x: 0, z: 2})
   const animationFrameRef = useRef(null);
-  const cubeRef = useRef(null);
+  const cube1Ref = useRef(null);
+  const cube2Ref = useRef(null);
   const isMouseDown = useRef(false);
   const lastMousePosition = useRef({x: 0, y: 0});
+  
+  const cameraPositions = [
+    { x: 0, z: 2 },
+    { x: 2, z: 2 },
+    { x: 0, z: 4 },
+    { x: -2, z: 2},
+  ];
+
+  const goToNextPosition = () => {
+    const nextIndex = (currentPositionIndex + 1) % cameraPositions.length;
+    setCurrentPositionIndex(nextIndex);
+  }
+
+  const goToPreviousPosition = () => {
+    const prevIndex = (currentPositionIndex - 1 + cameraPositions.length) % cameraPositions.length;
+    setCurrentPositionIndex(prevIndex);
+  }
+
+  useEffect(() => {
+    if (!cameraRef.current) return;
+
+    const camera = cameraRef.current;
+    const targetPosition = cameraPositions[currentPositionIndex];
+
+    const animate = () => {
+      const dx = targetPosition.x - camera.position.x;
+      const dz = targetPosition.z - camera.position.z; 
+      
+      if (Math.abs(dx) > 0.01 || Math.abs(dz) > 0.01) {
+        camera.position.x += dx * 0.1;
+        camera.position.z += dz * 0.1;
+        animationFrameRef.current = requestAnimationFrame(animate);
+      } else {
+        camera.position.x = targetPosition.x;
+        camera.position.z = targetPosition.z;
+      }
+    };
+
+    animate();
+
+    return () => {
+      if (animationFrameRef.current) {
+        cancelAnimationFrame(animationFrameRef.current);
+      }
+    };
+  }, [currentPositionIndex])
 
   useEffect(() => {
     const canvas = document.getElementById('canvas-container');
@@ -25,7 +71,7 @@ function App() {
     cameraRef.current = camera;
     scene.add(camera);
 
-    const renderer = new THREE.WebGLRenderer({ antialias: true });
+    const renderer = new THREE.WebGLRenderer({ antialias: true, powerPreference: "high-performance", alpha: false });
     renderer.setSize(window.innerWidth, window.innerHeight);
     canvas.appendChild(renderer.domElement);
 
@@ -42,13 +88,36 @@ function App() {
       if (!isMouseDown.current) return;
       const deltaX = e.clientX - lastMousePosition.current.x;
       const deltaY = e.clientY - lastMousePosition.current.y;
-
-      camera.rotation.y += deltaX * 0.005;
-      camera.rotation.x += deltaY * 0.005;
-
-      camera.rotation.x = Math.max(-Math.PI / 2, Math.min(Math.PI / 2, camera.rotation.x));
-
-      lastMousePosition.current = {x: e.clientX, y: e.clientY};
+    
+      const horizontalRotation = new THREE.Matrix4().makeRotationY(deltaX * 0.005);
+    
+      const verticalRotation = new THREE.Matrix4();
+      const right = new THREE.Vector3(1, 0, 0);
+      right.applyQuaternion(camera.quaternion);
+      right.y = 0;
+      right.normalize();
+      verticalRotation.makeRotationAxis(right, deltaY * 0.005);
+    
+      const lookDirection = new THREE.Vector3(0, 0, -1);
+      lookDirection.applyQuaternion(camera.quaternion);
+    
+      lookDirection.applyMatrix4(horizontalRotation);
+      
+      const tempDirection = lookDirection.clone();
+      tempDirection.applyMatrix4(verticalRotation);
+      const angle = tempDirection.y;
+      
+      if (Math.abs(angle) < 0.8) {
+        lookDirection.applyMatrix4(verticalRotation);
+      }
+    
+      camera.lookAt(
+        camera.position.x + lookDirection.x,
+        camera.position.y + lookDirection.y,
+        camera.position.z + lookDirection.z
+      );
+    
+      lastMousePosition.current = { x: e.clientX, y: e.clientY };
     }
 
     renderer.domElement.addEventListener('mousedown', handleMouseDown);
@@ -61,16 +130,22 @@ function App() {
     light.position.set(-1, 2, 4);
     scene.add(light);
 
-    const geometry = new THREE.BoxGeometry(1, 1, 1);
-    const material = new THREE.MeshPhongMaterial({ color: 0x44aa88 });
-    const cube = new THREE.Mesh(geometry, material);
-    scene.add(cube);
-    cubeRef.current = cube;
+    const geometry1 = new THREE.BoxGeometry(1, 1, 1);
+    const material1 = new THREE.MeshPhongMaterial({ color: 0x44aa88 });
+    const cube1 = new THREE.Mesh(geometry1, material1);
+    scene.add(cube1);
+    cube1Ref.current = cube1;
+  
+    
+    const geometry2 = new THREE.SphereGeometry( 1, 32, 16 ); 
+    const material2 = new THREE.MeshPhongMaterial({ color: 0x44aa88 });
+    const cube2 = new THREE.Mesh(geometry2, material2);
+    cube2.position.set(5, 0, 0);
+    scene.add(cube2);
+    cube2Ref.current = cube2;
 
     const animate = () => {
       requestAnimationFrame(animate);
-      cube.rotation.x += 0.01;
-      cube.rotation.y += 0.01;
       renderer.render(scene, camera);
     }
     animate();
@@ -101,8 +176,10 @@ function App() {
       renderer.domElement.removeEventListener('mousemove', handleMouseMove);
       window.removeEventListener('resize', handleResize);
       canvas.removeChild(renderer.domElement);
-      geometry.dispose();
-      material.dispose();
+      geometry1.dispose();
+      material1.dispose();
+      geometry2.dispose();
+      material2.dispose();
     };
   }, []);
   
@@ -110,13 +187,13 @@ function App() {
     if (sceneRef.current) {
       sceneRef.current.background = new THREE.Color(isDarkMode ? 0x000000 : 0xFFFFFF);
     }
-    if (cubeRef.current) {
-      cubeRef.current.material.color.set(isDarkMode ? 0x88ccff : 0x44aa88);
+    if (cube1Ref.current) {
+      cube1Ref.current.material.color.set(isDarkMode ? 0x88ccff : 0x44aa88);
     }
   }, [isDarkMode]);
 
   useEffect(() => {
-    if (!sceneRef.current || !cubeRef.current) return;
+    if (!sceneRef.current || !cube1Ref.current || !cube2Ref.current) return;
 
     const targetX = menuOpen ? -1.5 : 0;
     const camera = cameraRef.current;
@@ -128,9 +205,8 @@ function App() {
           camera.position.x += dx * 0.1;
           animationFrameRef.current = requestAnimationFrame(animate);
         } else {
-          camera.position.x = targetX
+          camera.position.x = targetX;
         }
-
         cameraPositionRef.current.x = camera.position.x;
       }
 
@@ -140,7 +216,7 @@ function App() {
         if (animationFrameRef.current) {
           cancelAnimationFrame(animationFrameRef.current);
         }
-      }
+      };
     }
   }, [menuOpen]);
   
@@ -173,6 +249,11 @@ function App() {
       </div>
       
       <div id="canvas-container"></div>
+
+      <div className={`navigation-controls ${menuOpen}`}>
+        <button className="control-button" onClick={goToPreviousPosition}>←</button>
+        <button className='control-button' onClick={goToNextPosition}>→</button>
+      </div>
 
       <div className='controls'>
         <button id='zoom-in' className='control-button'>+</button>
