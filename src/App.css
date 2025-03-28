@@ -117,7 +117,7 @@
 }
 
 .left-side-panel {
-    position:fixed;
+    position: fixed;
     left: 0;
     max-width: 300px;
     width: 40vw;
@@ -164,9 +164,13 @@
     justify-content: center;
     font-size: 24px;
     user-select: none;
-    -webkit-user-select: none; /* Safari */
-    -moz-user-select: none; /* Firefox */
-    -ms-user-select: none; /* IE10+/Edge */;
+    -webkit-user-select: none;
+    /* Safari */
+    -moz-user-select: none;
+    /* Firefox */
+    -ms-user-select: none;
+    /* IE10+/Edge */
+    ;
     cursor: pointer;
     padding: 0;
     line-height: 1;
@@ -237,6 +241,80 @@
 .dark-mode .navigation-controls .control-button:hover {
     background: rgba(255, 255, 255, 0.2);
 }
+
+.description-panel {
+    position: fixed;
+    right: -300px;
+    top: 50%;
+    transform: translateY(-50%);
+    width: 280px;
+    background: rgba(255, 255, 255, 0.95);
+    padding: 20px;
+    border-radius: 10px 0 0 10px;
+    box-shadow: -2px 0 10px rgba(0, 0, 0, 0.1);
+    transition: right 0.3s ease;
+    z-index: 1000;
+}
+
+.description-panel.visible {
+    right: 0;
+}
+
+.dark-mode .description-panel {
+    background: rgba(30, 30, 30, 0.95);
+    color: white;
+}
+
+.right-side-panel {
+    position: fixed;
+    top: 50%;
+    right: 0;
+    transform: translateX(100%) translateY(-50%);
+    width: 300px;
+    height: auto;
+    max-height: 80vh;
+    background: rgba(255, 255, 255, 0.9);
+    border-radius: 10px 0 0 10px;
+    padding: 20px;
+    transition: transform 0.3s ease;
+    z-index: 1000;
+    box-shadow: -2px 0 10px rgba(0, 0, 0, 0.1);
+  }
+  
+  .right-side-panel.open {
+    transform: translateX(0) translateY(-50%);
+  }
+  
+  .dark-mode .right-side-panel {
+    background: rgba(30, 30, 30, 0.9);
+    color: #fff;
+  }
+  
+  .close-button {
+    position: absolute;
+    top: 10px;
+    right: 10px;
+    background: none;
+    border: none;
+    font-size: 24px;
+    cursor: pointer;
+    color: inherit;
+    padding: 5px;
+    border-radius: 50%;
+    width: 30px;
+    height: 30px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+  }
+  
+  .close-button:hover {
+    background: rgba(0, 0, 0, 0.1);
+  }
+  
+  .dark-mode .close-button:hover {
+    background: rgba(255, 255, 255, 0.1);
+  }
 
 @media (max-width: 768px) {
     .left-side-panel {
