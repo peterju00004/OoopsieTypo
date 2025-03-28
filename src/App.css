@@ -11,23 +11,27 @@
     bottom: 20px;
     right: 20px;
     display: flex;
+    flex-direction: column;
     gap: 10px;
     z-index: 1000;
 }
 
 .control-button {
-    width: 40px;
-    height: 40px;
+    width: 60px;
+    height: 60px;
     border-radius: 50%;
     border: none;
-    background: rgba(0, 0, 0, 0.2);
+    background: transparent;
     cursor: pointer;
     color: #333;
     transition: all 0.3s ease;
+    display: flex;
+    align-items: center;
+    justify-content: center;
 }
 
 .dark-mode .control-button {
-    background: rgba(50, 50, 50, 0.8);
+    background: transparent;
     color: #fff;
 }
 
@@ -63,6 +67,54 @@
     background-color: #fff;
 }
 
+.fasms {
+    position: fixed;
+    top: 20px;
+    right: 20px;
+    border: none;
+    background: transparent;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    z-index: 1000;
+    padding: 0;
+}
+
+.fasms .button-content {
+    position: relative;
+    width: 150px;
+    height: 50px;
+    border-radius: 25px;
+    overflow: hidden;
+}
+
+.yellow-block {
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+}
+
+.fasms img {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+}
+
+.green-transition {
+    position: absolute;
+    top: -80%;
+    left: 0;
+    width: 100%;
+    height: 200% !important;
+    transition: transform 0.5s ease;
+}
+
+.fasms:hover .green-transition {
+    transform: translateY(100%);
+}
 
 .left-side-panel {
     position:fixed;
@@ -119,6 +171,62 @@
     padding: 0;
     line-height: 1;
     aspect-ratio: 1;
+}
+
+.control-button img {
+    width: 100%;
+    height: 100%;
+    pointer-events: none;
+    object-fit: contain;
+}
+
+.zoom-button {
+    overflow: hidden;
+    position: relative;
+    width: 60px;
+    height: 60px;
+    display: flex;
+    align-items: center;
+    justify-self: center;
+    padding: 0;
+}
+
+.button-content {
+    position: relative;
+    width: 100%;
+    height: 100%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    aspect-ratio: 1/1;
+}
+
+.default-icon,
+.hover-icon {
+    position: absolute;
+    width: 60%;
+    height: 60%;
+    aspect-ratio: 1/1;
+    object-fit: contain;
+    transition: all 0.5s ease;
+}
+
+.white-symbol {
+    position: absolute;
+    opacity: 1;
+    z-index: 10;
+}
+
+.default-icon {
+    transform: translateY(0) scale(1);
+}
+
+.hover-icon {
+    transform: translateY(80%) scale(0);
+}
+
+.zoom-button:hover .hover-icon {
+    transform: translateY(0) scale(1);
 }
 
 .navigation-controls .control-button:hover {

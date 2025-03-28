@@ -1,12 +1,20 @@
 import * as THREE from 'three';
-import { useEffect, useRef, useState } from 'react';
+import { useCallback, useEffect, useRef, useState } from 'react';
 import './App.css';
+import plusYellow from './assets/plus-yellow.svg';
+import minusYellow from './assets/minus-yellow.svg';
+import greenCircle from './assets/green-circle.png';
+import whitePlus from './assets/+.png';
+import whiteMinus from './assets/-.png';
+import yellowBlock from './assets/yellow-block.svg';
+import greenTransition from './assets/green-transition.png';
 
 const App = () => {
   const [menuOpen, setMenuOpen] = useState(false);
   const [isDarkMode, setIsDarkMode] = useState(false);
   const [currentPositionIndex, setCurrentPositionIndex] = useState(0);
   const sceneRef = useRef(null);
+  const rendererRef = useRef(null);
   const cameraRef = useRef(null);
   const cameraPositionRef = useRef({x: 0, z: 2})
   const animationFrameRef = useRef(null);
@@ -14,6 +22,7 @@ const App = () => {
   const cube2Ref = useRef(null);
   const isMouseDown = useRef(false);
   const lastMousePosition = useRef({x: 0, y: 0});
+  const lastFrameTimestamp = useRef(0);
   
   const cameraPositions = [
     { x: 0, z: 2 },
@@ -21,6 +30,62 @@ const App = () => {
     { x: 0, z: 4 },
     { x: -2, z: 2},
   ];
+
+  const animate = useCallback(() => {
+    if (!rendererRef.current || !sceneRef.current || !cameraRef.current) return;
+
+    rendererRef.current.render(sceneRef.current, cameraRef.current);
+    animationFrameRef.current = requestAnimationFrame(animate);
+  }, []);
+
+  const handleResize = useCallback((camera, renderer) => {
+    if (!camera || !renderer) return;
+    camera.aspect = window.innerWidth / window.innerHeight;
+    camera.updateProjectionMatrix();
+    renderer.setSize(window.innerWidth, window.innerHeight);
+  }, []);
+
+  const handleMouseMove = useCallback((e) => {
+    if (!isMouseDown.current || !cameraRef.current) return;
+
+    const timestamp = performance.now();
+    if (timestamp - lastFrameTimestamp.current < 16) return;
+
+    const camera = cameraRef.current;
+    const deltaX = e.clientX - lastMousePosition.current.x;
+    const deltaY = e.clientY - lastMousePosition.current.y;
+  
+    const horizontalRotation = new THREE.Matrix4().makeRotationY(deltaX * 0.005);
+  
+    const verticalRotation = new THREE.Matrix4();
+    const right = new THREE.Vector3(1, 0, 0);
+    right.applyQuaternion(camera.quaternion);
+    right.y = 0;
+    right.normalize();
+    verticalRotation.makeRotationAxis(right, deltaY * 0.005);
+  
+    const lookDirection = new THREE.Vector3(0, 0, -1);
+    lookDirection.applyQuaternion(camera.quaternion);
+  
+    lookDirection.applyMatrix4(horizontalRotation);
+    
+    const tempDirection = lookDirection.clone();
+    tempDirection.applyMatrix4(verticalRotation);
+    const angle = tempDirection.y;
+    
+    if (Math.abs(angle) < 0.8) {
+      lookDirection.applyMatrix4(verticalRotation);
+    }
+  
+    camera.lookAt(
+      camera.position.x + lookDirection.x,
+      camera.position.y + lookDirection.y,
+      camera.position.z + lookDirection.z
+    );
+  
+    lastMousePosition.current = { x: e.clientX, y: e.clientY };
+    lastFrameTimestamp.current = timestamp;
+  }, []);
 
   const goToNextPosition = () => {
     const nextIndex = (currentPositionIndex + 1) % cameraPositions.length;
@@ -72,7 +137,9 @@ const App = () => {
     scene.add(camera);
 
     const renderer = new THREE.WebGLRenderer({ antialias: true, powerPreference: "high-performance", alpha: false });
+    renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
     renderer.setSize(window.innerWidth, window.innerHeight);
+    rendererRef.current = renderer
     canvas.appendChild(renderer.domElement);
 
     const handleMouseDown = (e) => {
@@ -82,42 +149,6 @@ const App = () => {
 
     const handleMouseUp = () => {
       isMouseDown.current = false;
-    }
-
-    const handleMouseMove = (e) => {
-      if (!isMouseDown.current) return;
-      const deltaX = e.clientX - lastMousePosition.current.x;
-      const deltaY = e.clientY - lastMousePosition.current.y;
-    
-      const horizontalRotation = new THREE.Matrix4().makeRotationY(deltaX * 0.005);
-    
-      const verticalRotation = new THREE.Matrix4();
-      const right = new THREE.Vector3(1, 0, 0);
-      right.applyQuaternion(camera.quaternion);
-      right.y = 0;
-      right.normalize();
-      verticalRotation.makeRotationAxis(right, deltaY * 0.005);
-    
-      const lookDirection = new THREE.Vector3(0, 0, -1);
-      lookDirection.applyQuaternion(camera.quaternion);
-    
-      lookDirection.applyMatrix4(horizontalRotation);
-      
-      const tempDirection = lookDirection.clone();
-      tempDirection.applyMatrix4(verticalRotation);
-      const angle = tempDirection.y;
-      
-      if (Math.abs(angle) < 0.8) {
-        lookDirection.applyMatrix4(verticalRotation);
-      }
-    
-      camera.lookAt(
-        camera.position.x + lookDirection.x,
-        camera.position.y + lookDirection.y,
-        camera.position.z + lookDirection.z
-      );
-    
-      lastMousePosition.current = { x: e.clientX, y: e.clientY };
     }
 
     renderer.domElement.addEventListener('mousedown', handleMouseDown);
@@ -144,17 +175,8 @@ const App = () => {
     scene.add(cube2);
     cube2Ref.current = cube2;
 
-    const animate = () => {
-      requestAnimationFrame(animate);
-      renderer.render(scene, camera);
-    }
     animate();
 
-    const handleResize = () => {
-      camera.aspect = window.innerWidth / window.innerHeight;
-      camera.updateProjectionMatrix();
-      renderer.setSize(window.innerWidth, window.innerHeight);
-    }
     window.addEventListener('resize', handleResize);
 
     const handleZoomIn = () => {
@@ -171,15 +193,23 @@ const App = () => {
     document.getElementById('zoom-out').addEventListener('click', handleZoomOut);
 
     return () => {
+      cancelAnimationFrame(animationFrameRef.current);
+      if (rendererRef.current) {
+        rendererRef.current.dispose();
+        rendererRef.current.forceContextLoss();
+      }
       renderer.domElement.removeEventListener('mousedown', handleMouseDown);
       renderer.domElement.removeEventListener('mouseup', handleMouseUp);
       renderer.domElement.removeEventListener('mousemove', handleMouseMove);
+      renderer.dispose();
       window.removeEventListener('resize', handleResize);
       canvas.removeChild(renderer.domElement);
       geometry1.dispose();
       material1.dispose();
       geometry2.dispose();
       material2.dispose();
+      renderer.forceContextLoss();
+      renderer.domElement.remove();
     };
   }, []);
   
@@ -241,6 +271,13 @@ const App = () => {
         <span></span>
       </div>
 
+      <button className='fasms'>
+        <div className='button-content'>
+          <img src={yellowBlock} alt="Switch between full and simple version" className='yellow-block'/>
+          <img src={greenTransition} alt="" className='green-transition'/>
+        </div>
+      </button>
+
       <div className={`left-side-panel ${menuOpen ? 'open' : ''}`} >
         <nav>
           <ul>
@@ -256,8 +293,20 @@ const App = () => {
       </div>
 
       <div className='controls'>
-        <button id='zoom-in' className='control-button'>+</button>
-        <button id='zoom-out' className='control-button'>-</button>
+        <button id='zoom-in' className='control-button zoom-button'>
+          <div className='button-content'>
+            <img src={plusYellow} alt="Zoom in" className='default-icon'/>
+            <img src={greenCircle} className='hover-icon'/>
+            <img src={whitePlus} alt="" className='white-symbol'/>
+          </div>
+        </button>
+        <button id='zoom-out' className='control-button zoom-button'>
+          <div className='button-content'>
+            <img src={minusYellow} alt="Zoom out" className='default-icon'/>
+            <img src={greenCircle} className='hover-icon' />
+            <img src={whiteMinus} className='white-symbol'/>
+          </div>
+        </button>
         <button onClick={toggleTheme} className='control-button'></button>
       </div>
     </div>
