@@ -148,7 +148,7 @@
     left: 50%;
     transform: translateX(-50%);
     display: flex;
-    gap: 600px;
+    gap: 50vw;
     z-index: 1000;
 }
 
